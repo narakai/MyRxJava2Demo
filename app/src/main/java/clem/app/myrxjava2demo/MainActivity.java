@@ -13,7 +13,6 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
-import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
@@ -40,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_map();
 //        rxDemo_zip();
 //        rxDemo_concat();
-//        rxDemo_faltmap();
+//        rxDemo_flatmap();
         rxDemo_concatmap();
     }
 
@@ -78,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     //    FlatMap 是一个很有趣的东西，我坚信你在实际开发中会经常用到。它可以把一个发射器 Observable 通过某种方法转换为多个 Observables，
 //    然后再把这些分散的 Observables装进一个单一的发射器 Observable。
 //    但有个需要注意的是，flatMap 并不能保证事件的顺序，如果需要保证，需要用到我们下面要讲的 ConcatMap。
-    private void rxDemo_faltmap() {
+    private void rxDemo_flatmap() {
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(ObservableEmitter<Integer> e) throws Exception {
