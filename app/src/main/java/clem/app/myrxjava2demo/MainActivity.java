@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_map();
 //        rxDemo_zip();
 //        rxDemo_concat();
+//        rxDemo_merge();
 //        rxDemo_flatMap();
 //        rxDemo_concatMap();
 //        rxDemo_distinct();
@@ -66,7 +67,6 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_debounce();
 //        rxDemo_defer();
 //        rxDemo_last();
-//        rxDemo_merge();
 //        rxDemo_reduce();
 //        rxDemo_scan();
 //        rxDemo_window();
