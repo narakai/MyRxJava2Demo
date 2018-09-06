@@ -9,6 +9,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Flowable;
@@ -17,6 +19,8 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
+import io.reactivex.Single;
+import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
@@ -27,6 +31,7 @@ import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
 //https://www.jianshu.com/p/b39afa92807e
+//https://www.jianshu.com/p/81fac37430dd
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -46,17 +51,202 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_map();
 //        rxDemo_zip();
 //        rxDemo_concat();
-//        rxDemo_flatmap();
-//        rxDemo_concatmap();
-//        rxDemo_distict();
+//        rxDemo_flatMap();
+//        rxDemo_concatMap();
+//        rxDemo_distinct();
 //        rxDemo_filter();
 //        rxDemo_buffer();
 //        rxDemo_time();
 //        rxDemo_interval();
-//        rxDemo_doonnext();
+//        rxDemo_doOnNext();
 //        rxDemo_skip();
 //        rxDemo_take();
-        rxDemo_just();
+//        rxDemo_just();
+//        rxDemo_single();
+//        rxDemo_debounce();
+//        rxDemo_defer();
+//        rxDemo_last();
+//        rxDemo_merge();
+//        rxDemo_reduce();
+//        rxDemo_scan();
+        rxDemo_window();
+    }
+
+    //    按照实际划分窗口，将数据发送给不同的 Observable
+    private void rxDemo_window() {
+        mRxOperatorsText.append("window\n");
+        Log.e(TAG, "window\n");
+        Observable.interval(1, TimeUnit.SECONDS)
+                .take(15)
+                .window(4, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<Observable<Long>>() {
+                    @Override
+                    public void accept(Observable<Long> longObservable) throws Exception {
+                        mRxOperatorsText.append("Sub Divide begin...\n");
+                        Log.e(TAG, "Sub Divide begin...\n");
+                        longObservable.subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new Consumer<Long>() {
+                                    @Override
+                                    public void accept(Long aLong) throws Exception {
+                                        mRxOperatorsText.append("Next:" + aLong + "\n");
+                                        Log.e(TAG, "Next:" + aLong + "\n");
+                                    }
+                                });
+                    }
+                });
+    }
+
+    //    scan 操作符作用和上面的 reduce 一致，唯一区别是 reduce 是个只追求结果的坏人，而 scan 会始终如一地把每一个步骤都输出。
+    private void rxDemo_scan() {
+        Observable.just(1, 2, 3, 4, 5)
+                .scan(new BiFunction<Integer, Integer, Integer>() {
+                    @Override
+                    public Integer apply(Integer integer, Integer integer2) throws Exception {
+                        return integer + integer2;
+                    }
+                }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                mRxOperatorsText.append("scan : " + integer + "\n");
+                Log.e(TAG, "accept: scan : " + integer + "\n");
+            }
+        });
+    }
+
+    //    reduce 操作符每次用一个方法处理一个值，可以有一个 seed 作为初始值。
+    private void rxDemo_reduce() {
+        Observable.just(1, 2, 3, 4, 5)
+                .reduce(new BiFunction<Integer, Integer, Integer>() {
+                    @Override
+                    public Integer apply(Integer integer, Integer integer2) throws Exception {
+                        Log.e(TAG, integer + " " + integer2);
+                        return integer + integer2;
+                    }
+                }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                mRxOperatorsText.append("reduce : " + integer + "\n");
+                Log.e(TAG, "accept: reduce : " + integer + "\n");
+            }
+        });
+    }
+
+    //    merge 顾名思义，熟悉版本控制工具的你一定不会不知道 merge 命令，而在 Rx 操作符中，merge 的作用是把多个 Observable 结合起来，
+//    接受可变参数，也支持迭代器集合。注意它和 concat 的区别在于，不用等到 发射器 A 发送完所有的事件再进行发射器 B 的发送
+    private void rxDemo_merge() {
+        Observable.merge(Observable.just(1, 2), Observable.just(3, 4, 5))
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("merge :" + integer + "\n");
+                        Log.e(TAG, "accept: merge :" + integer + "\n");
+                    }
+                });
+    }
+
+    //    取出可观察到的最后一个值，或者是满足某些条件的最后一项
+    private void rxDemo_last() {
+        Observable.just(1, 2, 3)
+                .last(0)
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("last : " + integer + "\n");
+                        Log.e(TAG, "last : " + integer + "\n");
+                    }
+                });
+    }
+
+    //    简单地时候就是每次订阅都会创建一个新的 Observable，并且如果没有被订阅，就不会产生新的 Observable
+    private void rxDemo_defer() {
+        Observable<Integer> observable = Observable.defer(new Callable<ObservableSource<? extends Integer>>() {
+            @Override
+            public ObservableSource<? extends Integer> call() throws Exception {
+                return Observable.just(1, 2, 3);
+            }
+        });
+
+        observable.subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(Integer integer) {
+                mRxOperatorsText.append("defer : ").append(integer).append("\n");
+                Log.e(TAG, "defer : " + integer + "\n");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                mRxOperatorsText.append("defer : onError : ").append(e.getMessage()).append("\n");
+                Log.e(TAG, "defer : onError : " + e.getMessage() + "\n");
+            }
+
+            @Override
+            public void onComplete() {
+                mRxOperatorsText.append("defer : onComplete\n");
+                Log.e(TAG, "defer : onComplete\n");
+            }
+        });
+
+    }
+
+    //    去除发送频率过快的项
+    private void rxDemo_debounce() {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                // send events with simulated time wait
+                emitter.onNext(1); // skip
+                Thread.sleep(400);
+                emitter.onNext(2); // deliver
+                Thread.sleep(505);
+                emitter.onNext(3); // skip
+                Thread.sleep(100);
+                emitter.onNext(4); // deliver
+                Thread.sleep(605);
+                emitter.onNext(5); // deliver
+                Thread.sleep(510);
+                emitter.onComplete();
+            }
+        }).debounce(500, TimeUnit.MILLISECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("debounce :" + integer + "\n");
+                        Log.e(TAG, "debounce :" + integer + "\n");
+                    }
+                });
+    }
+
+    //    Single 只会接收一个参数，而 SingleObserver 只会调用 onError() 或者 onSuccess()
+    private void rxDemo_single() {
+        Single.just(new Random().nextInt())
+                .subscribe(new SingleObserver<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onSuccess(Integer integer) {
+                        mRxOperatorsText.append("single : onSuccess : ").append(integer).append("\n");
+                        Log.e(TAG, "single : onSuccess : " + integer + "\n");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        mRxOperatorsText.append("single : onError : ").append(e.getMessage()).append("\n");
+                        Log.e(TAG, "single : onError : " + e.getMessage() + "\n");
+                    }
+                });
     }
 
     //    一个简单的发射器依次调用 onNext() 方法
@@ -100,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //    让订阅者在接收到数据之前干点有意思的事情。假如我们在获取到数据之前想先保存一下它
-    private void rxDemo_doonnext() {
+    private void rxDemo_doOnNext() {
         Observable.just(1, 2, 3)
                 .doOnNext(new Consumer<Integer>() {
                     @Override
@@ -209,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //    简单的去重
-    private void rxDemo_distict() {
+    private void rxDemo_distinct() {
         Observable.just(1, 2, 3, 4, 12, 2)
                 .distinct()
                 .subscribe(new Consumer<Integer>() {
@@ -222,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //    concatMap 与 FlatMap 的唯一区别就是 concatMap 保证了顺序，所以，我们就直接把 flatMap 替换为 concatMap 验证吧。
-    private void rxDemo_concatmap() {
+    private void rxDemo_concatMap() {
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(ObservableEmitter<Integer> e) throws Exception {
@@ -255,7 +445,7 @@ public class MainActivity extends AppCompatActivity {
     //    FlatMap 是一个很有趣的东西，我坚信你在实际开发中会经常用到。它可以把一个发射器 Observable 通过某种方法转换为多个 Observables，
 //    然后再把这些分散的 Observables装进一个单一的发射器 Observable。
 //    但有个需要注意的是，flatMap 并不能保证事件的顺序，如果需要保证，需要用到我们下面要讲的 ConcatMap。
-    private void rxDemo_flatmap() {
+    private void rxDemo_flatMap() {
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
             public void subscribe(ObservableEmitter<Integer> e) throws Exception {
