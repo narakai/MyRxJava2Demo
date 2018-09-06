@@ -1,10 +1,13 @@
 package clem.app.myrxjava2demo;
 
+import android.annotation.SuppressLint;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -18,6 +21,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
 //https://www.jianshu.com/p/b39afa92807e
@@ -25,6 +29,7 @@ import io.reactivex.schedulers.Schedulers;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private StringBuilder mRxOperatorsText;
+    private Disposable mDisposable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,10 +45,105 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_zip();
 //        rxDemo_concat();
 //        rxDemo_flatmap();
-        rxDemo_concatmap();
+//        rxDemo_concatmap();
+//        rxDemo_distict();
+//        rxDemo_filter();
+//        rxDemo_buffer();
+//        rxDemo_time();
+        rxDemo_interval();
     }
 
-//    concatMap 与 FlatMap 的唯一区别就是 concatMap 保证了顺序，所以，我们就直接把 flatMap 替换为 concatMap 验证吧。
+    private void rxDemo_interval() {
+        mRxOperatorsText.append("interval start : " + getNowStrTime() + "\n");
+        Log.e(TAG, "interval start : " + getNowStrTime() + "\n");
+        mDisposable = Observable.interval(5, 2, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread()) // interval 默认在新线程，所以需要切换回主线程
+                .subscribe(new Consumer<Long>() {
+                    @Override
+                    public void accept(Long aLong) throws Exception {
+                        mRxOperatorsText.append("interval :" + aLong + " at " + getNowStrTime() + "\n");
+                        Log.e(TAG, "interval :" + aLong + " at " + getNowStrTime() + "\n");
+                    }
+                });
+    }
+
+    //    相当于一个定时任务。在 1.x 中它还可以执行间隔逻辑，但在 2.x 中此功能被交给了 interval，下一个会介绍。
+    //    但需要注意的是，timer 和 interval 均默认在新线程
+    private void rxDemo_time() {
+        mRxOperatorsText.append("timer start : " + getNowStrTime() + "\n");
+        Log.e(TAG, "timer start : " + getNowStrTime() + "\n");
+        Observable.timer(2, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread()) // timer 默认在新线程，所以需要切换回主线程
+                .subscribe(new Consumer<Long>() {
+                    @Override
+                    public void accept(Long aLong) throws Exception {
+                        mRxOperatorsText.append("timer :" + aLong + " at " + getNowStrTime() + "\n");
+                        Log.e(TAG, "timer :" + aLong + " at " + getNowStrTime() + "\n");
+                    }
+                });
+    }
+
+    private String getNowStrTime() {
+        long time = System.currentTimeMillis();
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(new Date(time));
+    }
+
+    //    buffer 操作符接受两个参数，buffer(count,skip)，作用是将 Observable 中的数据按 skip (步长) 分成最大不超过 count 的 buffer ，
+//    然后生成一个  Observable
+    private void rxDemo_buffer() {
+        Observable.just(1, 2, 3, 4, 5, 6)
+                .buffer(3, 2)
+                .subscribe(new Consumer<List<Integer>>() {
+                    @Override
+                    public void accept(List<Integer> integers) throws Exception {
+                        mRxOperatorsText.append("buffer size : " + integers.size() + "\n");
+                        Log.e(TAG, "buffer size : " + integers.size() + "\n");
+                        mRxOperatorsText.append("buffer value : ");
+                        Log.e(TAG, "buffer value : ");
+                        for (Integer i : integers) {
+                            mRxOperatorsText.append(i + "");
+                            Log.e(TAG, i + "");
+                        }
+                        mRxOperatorsText.append("\n");
+                        Log.e(TAG, "\n");
+                    }
+                });
+    }
+
+    //    接受一个参数，让其过滤掉不符合我们条件的值
+    private void rxDemo_filter() {
+        Observable.just(1, 20, 65, -5, 7, 19)
+                .filter(new Predicate<Integer>() {
+                    @Override
+                    public boolean test(Integer integer) throws Exception {
+                        return integer > 10;
+                    }
+                }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                mRxOperatorsText.append("filter : " + integer + "\n");
+                Log.e(TAG, "filter : " + integer + "\n");
+            }
+        });
+    }
+
+    //    简单的去重
+    private void rxDemo_distict() {
+        Observable.just(1, 2, 3, 4, 12, 2)
+                .distinct()
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("distinct : " + integer + "\n");
+                        Log.e(TAG, "distinct : " + integer + "\n");
+                    }
+                });
+    }
+
+    //    concatMap 与 FlatMap 的唯一区别就是 concatMap 保证了顺序，所以，我们就直接把 flatMap 替换为 concatMap 验证吧。
     private void rxDemo_concatmap() {
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
@@ -259,5 +359,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "onComplete" + "\n");
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mDisposable != null && !mDisposable.isDisposed()) {
+            mDisposable.dispose();
+        }
     }
 }
