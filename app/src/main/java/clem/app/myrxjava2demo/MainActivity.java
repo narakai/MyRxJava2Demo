@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_merge();
 //        rxDemo_reduce();
 //        rxDemo_scan();
-        rxDemo_window();
+//        rxDemo_window();
     }
 
     //    按照实际划分窗口，将数据发送给不同的 Observable
