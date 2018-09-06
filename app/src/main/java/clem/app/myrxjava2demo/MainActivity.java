@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -18,6 +19,7 @@ import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
@@ -50,9 +52,85 @@ public class MainActivity extends AppCompatActivity {
 //        rxDemo_filter();
 //        rxDemo_buffer();
 //        rxDemo_time();
-        rxDemo_interval();
+//        rxDemo_interval();
+//        rxDemo_doonnext();
+//        rxDemo_skip();
+//        rxDemo_take();
+        rxDemo_just();
     }
 
+    //    一个简单的发射器依次调用 onNext() 方法
+    private void rxDemo_just() {
+        Observable.just("1", "2", "3")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        mRxOperatorsText.append("accept : onNext : " + s + "\n");
+                        Log.e(TAG, "accept : onNext : " + s + "\n");
+                    }
+                });
+    }
+
+    //    接受一个 long 型参数 count ，代表至多接收 count 个数据
+    private void rxDemo_take() {
+        Flowable.fromArray(1, 2, 3, 4, 5)
+                .take(2)
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("take : " + integer + "\n");
+                        Log.e(TAG, "accept: take : " + integer + "\n");
+                    }
+                });
+    }
+
+    //    接受一个 long 型参数 count ，代表跳过 count 个数目开始接收
+    private void rxDemo_skip() {
+        Observable.just(1, 2, 3, 4, 5)
+                .skip(2)
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("skip : " + integer + "\n");
+                        Log.e(TAG, "skip : " + integer + "\n");
+                    }
+                });
+    }
+
+    //    让订阅者在接收到数据之前干点有意思的事情。假如我们在获取到数据之前想先保存一下它
+    private void rxDemo_doonnext() {
+        Observable.just(1, 2, 3)
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("doOnNext 保存 " + integer + "成功" + "\n");
+                        Log.e(TAG, "doOnNext 保存 " + integer + "成功" + "\n");
+                    }
+                })
+                .doOnSubscribe(new Consumer<Disposable>() {
+                    @Override
+                    public void accept(Disposable disposable) throws Exception {
+                        Log.e(TAG, "doOnSubscribe: ");
+                    }
+                })
+                .doOnTerminate(new Action() {
+                    @Override
+                    public void run() throws Exception {
+                        Log.e(TAG, "doOnTerminate: ");
+                    }
+                })
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        mRxOperatorsText.append("doOnNext :" + integer + "\n");
+                        Log.e(TAG, "doOnNext :" + integer + "\n");
+                    }
+                });
+    }
+
+    //    间隔时间执行某个操作，其接受三个参数，分别是第一次发送延迟，间隔时间，时间单位
     private void rxDemo_interval() {
         mRxOperatorsText.append("interval start : " + getNowStrTime() + "\n");
         Log.e(TAG, "interval start : " + getNowStrTime() + "\n");
