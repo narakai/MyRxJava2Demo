@@ -477,6 +477,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //    发射器 B 把自己的三个孩子送给了发射器 A，让他们组合成了一个新的发射器，非常懂事的孩子，有条不紊的排序接收。
+//    在操作符 concat 中，只有调用 onComplete 之后才会执行下一个 Observable
     private void rxDemo_concat() {
         Observable.concat(Observable.just(1, 2, 3).subscribeOn(Schedulers.io()), Observable.just(4, 5, 6))
                 .subscribe(new Consumer<Integer>() {
